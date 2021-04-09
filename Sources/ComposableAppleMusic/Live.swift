@@ -14,7 +14,7 @@
             var manager = AppleMusicManager()
 
             manager.connectionStatus = { id in
-                return dependencies[id]?.connectionStatus ?? .disconnected
+                return dependencies[id]?.connectionStatus ?? .unknown
             }
             
             manager.create = { id in
@@ -22,7 +22,7 @@
                 Effect.run { subscriber in
                     let systemMediaPlayer = MPMusicPlayerController.systemMusicPlayer
                     let notificationCenter = NotificationCenter.default
-                    let delegate = WatchConnectivityDelegate(subscriber)
+                    let delegate = AppleMusicManagerDelegate(subscriber)
 
                     notificationCenter.addObserver(delegate,
                                                    selector: #selector(delegate.handleMusicPlayerControllerNowPlayingItemDidChange),
@@ -35,6 +35,7 @@
                                                    object: systemMediaPlayer)
 
                     dependencies[id] = Dependencies(
+                        connectionStatus: ConnectionStatus(rawValue: UserDefaults.standard.integer(forKey: "\(AppleMusicManager.self)_status_key")) ?? .unknown,
                         systemMediaPlayer: systemMediaPlayer,
                         notificationCenter: notificationCenter,
                         delegate: delegate,
@@ -53,6 +54,8 @@
 
             manager.destroy = { id in
                 .fireAndForget {
+                    let statusKey = dependencies[id]?.connectionStatus ?? .unknown
+                    UserDefaults.standard.set(statusKey.rawValue, forKey: "\(AppleMusicManager.self)_status_key")
                     dependencies[id]?.systemMediaPlayer.endGeneratingPlaybackNotifications()
                     dependencies[id]?.subscriber.send(completion: .finished)
                     dependencies[id] = nil
@@ -106,16 +109,16 @@
     }
 
     private struct Dependencies {
-        var connectionStatus: ConnectionStatus = .disconnected
+        var connectionStatus: ConnectionStatus
         var systemMediaPlayer: MPMusicPlayerController
         var notificationCenter: NotificationCenter
-        let delegate: WatchConnectivityDelegate
+        let delegate: AppleMusicManagerDelegate
         let subscriber: Effect<AppleMusicManager.Action, Never>.Subscriber
     }
 
     private var dependencies: [AnyHashable: Dependencies] = [:]
 
-    private class WatchConnectivityDelegate: NSObject {
+    private class AppleMusicManagerDelegate: NSObject {
         let subscriber: Effect<AppleMusicManager.Action, Never>.Subscriber
 
         init(_ subscriber: Effect<AppleMusicManager.Action, Never>.Subscriber) {
