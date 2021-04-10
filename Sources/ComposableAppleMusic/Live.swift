@@ -18,6 +18,7 @@
             manager.create = { id in
 
                 Effect.run { subscriber in
+                    let connectionStatus = ConnectionStatus(rawValue: UserDefaults.standard.integer(forKey: "\(AppleMusicManager.self)_status_key")) ?? .unknown
                     let systemMediaPlayer = MPMusicPlayerController.systemMusicPlayer
                     let notificationCenter = NotificationCenter.default
                     let delegate = AppleMusicManagerDelegate(subscriber)
@@ -33,16 +34,21 @@
                                                    object: systemMediaPlayer)
 
                     dependencies[id] = Dependencies(
-                        connectionStatus: ConnectionStatus(rawValue: UserDefaults.standard.integer(forKey: "\(AppleMusicManager.self)_status_key")) ?? .unknown,
+                        connectionStatus: connectionStatus,
                         systemMediaPlayer: systemMediaPlayer,
                         notificationCenter: notificationCenter,
                         delegate: delegate,
                         subscriber: subscriber
                     )
-
-                    systemMediaPlayer.beginGeneratingPlaybackNotifications()
-                    delegate.handleMusicPlayerControllerPlaybackStateDidChange()
-                    delegate.handleMusicPlayerControllerNowPlayingItemDidChange()
+                    
+                    switch connectionStatus {
+                    case .connected:
+                        systemMediaPlayer.beginGeneratingPlaybackNotifications()
+                        delegate.handleMusicPlayerControllerPlaybackStateDidChange()
+                        delegate.handleMusicPlayerControllerNowPlayingItemDidChange()
+                    case .disconnected, .unknown:
+                        break
+                    }
 
                     return AnyCancellable {
                         dependencies[id] = nil
@@ -63,8 +69,16 @@
             manager.authorize = { id in
                 .fireAndForget {
                     MPMediaLibrary.requestAuthorization { status in
-                        let statusKey: ConnectionStatus = status == .authorized ? .connected : .disconnected
-                        UserDefaults.standard.set(statusKey.rawValue, forKey: "\(AppleMusicManager.self)_status_key")
+                        let connectionStatus: ConnectionStatus = status == .authorized ? .connected : .disconnected
+                        UserDefaults.standard.set(connectionStatus.rawValue, forKey: "\(AppleMusicManager.self)_status_key")
+                        switch connectionStatus {
+                        case .connected:
+                            dependencies[id]?.systemMediaPlayer.beginGeneratingPlaybackNotifications()
+                            dependencies[id]?.delegate.handleMusicPlayerControllerPlaybackStateDidChange()
+                            dependencies[id]?.delegate.handleMusicPlayerControllerNowPlayingItemDidChange()
+                        case .disconnected, .unknown:
+                            break
+                        }
                         dependencies[id]?.subscriber.send(.authorizationStatus(status))
                     }
                 }
