@@ -8,6 +8,7 @@
 
     public struct AppleMusicManager {
         public enum Action: Equatable {
+            case authorizationStatus(MPMediaLibraryAuthorizationStatus)
             case nowPlayingItemDidChange(NowPlayingMedia)
             case playbackStateDidChange(MPMusicPlaybackState)
         }
@@ -26,6 +27,7 @@
 
         var create: (AnyHashable) -> Effect<Action, Never> = { _ in _unimplemented("create") }
         var destroy: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("destroy") }
+        var authorize: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("authorize") }
         var play: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("play") }
         var pause: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("pause") }
         var skipForward: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("skipForward") }
@@ -39,6 +41,10 @@
 
         public func destroy(id: AnyHashable) -> Effect<Never, Never> {
             destroy(id)
+        }
+        
+        public func authorize(id: AnyHashable) -> Effect<Never, Never> {
+            authorize(id)
         }
         
         public func play(id: AnyHashable) -> Effect<Never, Never> {

@@ -13,9 +13,7 @@
 
             var manager = AppleMusicManager()
 
-            manager.connectionStatus = { id in
-                return dependencies[id]?.connectionStatus ?? .unknown
-            }
+            manager.connectionStatus = { id in return dependencies[id]?.connectionStatus ?? .unknown }
             
             manager.create = { id in
 
@@ -59,6 +57,16 @@
                     dependencies[id]?.systemMediaPlayer.endGeneratingPlaybackNotifications()
                     dependencies[id]?.subscriber.send(completion: .finished)
                     dependencies[id] = nil
+                }
+            }
+            
+            manager.authorize = { id in
+                .fireAndForget {
+                    MPMediaLibrary.requestAuthorization { status in
+                        let statusKey: ConnectionStatus = status == .authorized ? .connected : .disconnected
+                        UserDefaults.standard.set(statusKey.rawValue, forKey: "\(AppleMusicManager.self)_status_key")
+                        dependencies[id]?.subscriber.send(.authorizationStatus(status))
+                    }
                 }
             }
             
