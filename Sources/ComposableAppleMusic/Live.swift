@@ -148,15 +148,19 @@
         }
 
         @objc func handleMusicPlayerControllerNowPlayingItemDidChange() {
-            let nowPlaying = NowPlayingMedia(artwork: MPMusicPlayerController.systemMusicPlayer.nowPlayingItem?.artwork?.image(at: CGSize(width: 64, height: 64)),
-                                             title: MPMusicPlayerController.systemMusicPlayer.nowPlayingItem?.title,
-                                             artist: MPMusicPlayerController.systemMusicPlayer.nowPlayingItem?.artist)
-            subscriber.send(.nowPlayingItemDidChange(nowPlaying))
+            DispatchQueue.main.async {
+                let nowPlaying = NowPlayingMedia(artwork: MPMusicPlayerController.systemMusicPlayer.nowPlayingItem?.artwork?.image(at: CGSize(width: 64, height: 64)),
+                                                 title: MPMusicPlayerController.systemMusicPlayer.nowPlayingItem?.title,
+                                                 artist: MPMusicPlayerController.systemMusicPlayer.nowPlayingItem?.artist)
+                subscriber.send(.nowPlayingItemDidChange(nowPlaying))
+            }
         }
 
         @objc func handleMusicPlayerControllerPlaybackStateDidChange() {
-            let playbackState = MPMusicPlayerController.systemMusicPlayer.playbackState
-            subscriber.send(.playbackStateDidChange(playbackState))
+            DispatchQueue.main.async {
+                let playbackState = MPMusicPlayerController.systemMusicPlayer.playbackState
+                subscriber.send(.playbackStateDidChange(playbackState))
+            }
         }
     }
 
